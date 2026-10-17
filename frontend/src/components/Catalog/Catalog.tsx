@@ -1,6 +1,6 @@
 ﻿import React, { useState } from 'react';
 import type { Recipe } from '../../types';
-import { Clock, Flame, Users, Plus, Check, Eye, X, BookOpen, AlertTriangle } from 'lucide-react';
+import { Clock, Flame, Users, Plus, Check, Eye, X, BookOpen } from 'lucide-react';
 
 interface CatalogProps {
   recipes: Recipe[];
@@ -10,6 +10,32 @@ interface CatalogProps {
 
 export const Catalog: React.FC<CatalogProps> = ({ recipes, selectedIds, onToggleSelect }) => {
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
+
+  const renderFormattedLines = (text: string) => {
+    return text.split('\n').filter(Boolean).map((line, idx) => {
+      const trimmed = line.trim();
+      const isNumbered = /^\d+[\.\)]/.test(trimmed);
+      const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-');
+      const isLabel = /^(Alergeni|Alternative|Variante|Sfaturi)\s*:/i.test(trimmed);
+
+      if (isLabel) {
+        const [label, ...rest] = trimmed.split(':');
+        return (
+          <p key={idx} className="mt-2 text-slate-800">
+            <strong className="font-bold text-slate-900">{label}:</strong>
+            {rest.join(':')}
+          </p>
+        );
+      }
+      if (isNumbered) {
+        return <p key={idx} className="pl-1 py-0.5 text-slate-800">{trimmed}</p>;
+      }
+      if (isBullet) {
+        return <p key={idx} className="pl-2 py-0.5 text-slate-700">{trimmed}</p>;
+      }
+      return <p key={idx} className="text-slate-600 italic mb-2">{trimmed}</p>;
+    });
+  };
 
   return (
     <>
@@ -77,7 +103,7 @@ export const Catalog: React.FC<CatalogProps> = ({ recipes, selectedIds, onToggle
 
       {activeRecipe && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl">
             <div className="relative h-64 bg-slate-100">
               {activeRecipe.image_url && (
                 <img src={activeRecipe.image_url} alt={activeRecipe.title} className="w-full h-full object-cover" />
@@ -90,17 +116,23 @@ export const Catalog: React.FC<CatalogProps> = ({ recipes, selectedIds, onToggle
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                <div>
-                  <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1 mb-1">
-                    <BookOpen className="w-3.5 h-3.5" /> {activeRecipe.book_source} (Pag. {activeRecipe.page_number})
-                  </span>
-                  <h2 className="text-xl font-bold text-slate-900">{activeRecipe.title}</h2>
-                </div>
+            <div className="border-b border-slate-200 bg-slate-50 px-6 py-3 flex flex-wrap items-center justify-between gap-4 text-sm font-medium text-slate-700">
+              <div className="flex items-center gap-6">
+                <span>🍴 <strong>{activeRecipe.servings}</strong> porții</span>
+                <span>🕒 <strong>{activeRecipe.prep_time_min}</strong> minute</span>
+                <span>🔥 <strong>{Math.round(activeRecipe.calories_kcal)}</strong> calorii</span>
+              </div>
+              <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                <BookOpen className="w-3.5 h-3.5" /> {activeRecipe.book_source} (Pag. {activeRecipe.page_number})
+              </span>
+            </div>
+
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <h2 className="text-2xl font-extrabold text-slate-900 uppercase tracking-tight">{activeRecipe.title}</h2>
                 <button
                   onClick={() => onToggleSelect(activeRecipe)}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 ${
+                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shrink-0 ${
                     selectedIds.includes(activeRecipe.id) ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white'
                   }`}
                 >
@@ -108,48 +140,58 @@ export const Catalog: React.FC<CatalogProps> = ({ recipes, selectedIds, onToggle
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 bg-slate-50 p-3 rounded-xl text-center text-xs">
-                <div><span className="text-slate-400 block">Porții</span><span className="font-bold text-slate-800">{activeRecipe.servings}</span></div>
-                <div><span className="text-slate-400 block">Timp</span><span className="font-bold text-slate-800">{activeRecipe.prep_time_min} min</span></div>
-                <div><span className="text-slate-400 block">Calorii</span><span className="font-bold text-emerald-700">{activeRecipe.calories_kcal} kcal</span></div>
-                <div><span className="text-slate-400 block">Proteine</span><span className="font-bold text-slate-800">{activeRecipe.protein_g} g</span></div>
-                <div><span className="text-slate-400 block">Carbohidrați</span><span className="font-bold text-slate-800">{activeRecipe.carbs_g} g</span></div>
-                <div><span className="text-slate-400 block">Grăsimi</span><span className="font-bold text-slate-800">{activeRecipe.fat_g} g</span></div>
-              </div>
-
-              {activeRecipe.allergens && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span><strong>Alergeni:</strong> {activeRecipe.allergens}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wider">Ingrediente ({activeRecipe.servings} porții)</h4>
-                  <ul className="space-y-2 text-sm text-slate-700">
-                    {activeRecipe.ingredients.map((ing) => (
-                      <li key={ing.id} className="flex items-start justify-between border-b border-slate-100 pb-1.5">
-                        <span>• {ing.raw_text}</span>
-                        <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded ml-2 shrink-0">{ing.aisle}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                <div className="md:col-span-5 flex flex-col justify-between space-y-8">
                   <div>
-                    <h4 className="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wider">Instrucțiuni de preparare</h4>
-                    <div className="text-sm text-slate-700 whitespace-pre-line leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      {activeRecipe.instructions}
+                    <h4 className="font-extrabold text-slate-900 mb-3 text-base uppercase tracking-wide">
+                      INGREDIENTE ({activeRecipe.servings} PORȚII)
+                    </h4>
+                    <ul className="space-y-2 text-sm text-slate-800">
+                      {activeRecipe.ingredients.map((ing) => (
+                        <li key={ing.id} className="flex items-start justify-between gap-2 border-b border-slate-100 pb-1.5">
+                          <span>• {ing.raw_text}</span>
+                          <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded shrink-0">{ing.aisle}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="font-extrabold text-slate-900 mb-2 text-base uppercase tracking-wide">
+                      MACRO/PORȚIE
+                    </h4>
+                    <ul className="space-y-1 text-sm text-slate-800">
+                      <li>• <strong>Calorii:</strong> {activeRecipe.calories_kcal} kcal</li>
+                      <li>• <strong>Proteine:</strong> {activeRecipe.protein_g} g</li>
+                      <li>• <strong>Grăsimi:</strong> {activeRecipe.fat_g} g</li>
+                      <li>• <strong>Carbohidrați:</strong> {activeRecipe.carbs_g} g</li>
+                      {activeRecipe.fiber_g > 0 && <li>• <strong>Fibre:</strong> {activeRecipe.fiber_g} g</li>}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="md:col-span-7 flex flex-col justify-between space-y-8">
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 mb-3 text-base uppercase tracking-wide">
+                      INSTRUCȚIUNI
+                    </h4>
+                    <div className="text-sm leading-relaxed space-y-1.5">
+                      {renderFormattedLines(activeRecipe.instructions)}
                     </div>
                   </div>
 
-                  {activeRecipe.tips && (
-                    <div>
-                      <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wider text-emerald-700">Sfaturi Practice & Variante</h4>
-                      <div className="text-xs text-slate-600 whitespace-pre-line bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100">
-                        {activeRecipe.tips}
+                  {(activeRecipe.tips || activeRecipe.allergens) && (
+                    <div className="pt-2 border-t border-slate-200">
+                      <h4 className="font-extrabold text-slate-900 mb-3 text-base uppercase tracking-wide">
+                        SFATURI PRACTICE
+                      </h4>
+                      <div className="text-sm leading-relaxed space-y-1.5">
+                        {activeRecipe.tips && renderFormattedLines(activeRecipe.tips)}
+                        {activeRecipe.allergens && (
+                          <p className="mt-2 text-slate-800">
+                            <strong className="font-bold text-slate-900">Alergeni:</strong> {activeRecipe.allergens}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
